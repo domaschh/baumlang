@@ -149,7 +149,6 @@ class BinaryExpr(Expr):
         self.lhs = lhs
         self.operator = operator
 
-
 class NumberLiteral(Expr):
     def __init__(self, value):
         self.value = value
@@ -228,7 +227,15 @@ class Parser:
         return precedences.get(token.type, 0)
 
     def parse_function_decl(self, name) -> FuncDecl:
-        pass
+        self.consume()# name
+        self.consume()# =
+        self.consume()# start |
+        params = self.parse_parameters()
+        self.consume() # end |
+        self.consume() # start {
+        body = self.parse_expr()
+        self.consume() # end }
+        return FuncDecl(name, params, body)
 
     def parse_var_decl(self, name) -> VarDecl:
         expr = self.parse_expr()
@@ -261,19 +268,33 @@ class Parser:
             self.consume()
             expr = self.parse_expr()
             exprs.append(expr)
-            print(self.current_token())
             #here should be , now
         self.consume()
         return ListExpr(exprs)
 
+    def parse_parameters(self) -> [str]:
+        params = []
+        while self.current_token().type != TokenType.PIPE:
+            if self.current_token().type == TokenType.IDENTIFIER:
+                params.append(self.current_token().value)
+            self.consume()
+
+        return params
+
+
 # Example usage
 example_code = '''
 let a = [(1+b)*3,2,3]
+let b = 3
+let myfunc = |a,b| {
+    a + 1
+}
 '''
 
 tokens = tokenize(example_code)
 parser = Parser(tokens)
 statements = parser.parse()
-print(statements)
+for stmt in statements:
+    print(stmt)
 program = Program(statements)
 program.execute()
