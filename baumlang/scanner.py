@@ -1,5 +1,7 @@
 import re
 from enum import Enum, auto
+from typing import TypeVar, List, Union
+
 
 class TokenType(Enum):
     LET = auto()
@@ -131,19 +133,50 @@ class FuncCall(Expr):
         self.name = name
         self.args = args
 
+T = TypeVar('T')
+
 class Program:
     def __init__(self, stmts):
         self.statements = stmts
+        self.vars = {}
+        self.funcs = {}
 
     def execute(self):
         for stmt in self.statements:
-            if isinstance(stmt, Eval):
-                self.eval(stmt)
-            else:
-                continue
+            if isinstance(stmt, Expr):
+                result = self.eval(stmt)
+                print(f"Expression result: {result}")
+            elif isinstance(stmt, VarDecl):
+                self.vars[stmt.name] = self.eval_var(stmt)
+                print(f"Variable {stmt.name} = {self.vars[stmt.name]}")
+            elif isinstance(stmt, FuncDecl):
+                self.funcs[stmt.name] = stmt
+                print(f"Function {stmt.name} defined")
 
-    def eval(self, stmt):
-        print("evaluating")
+    def eval(self, expr: Expr) -> Union[int, float, List]:
+        if isinstance(expr, NumberLiteral):
+            return expr.value
+        elif isinstance(expr, Variable):
+            return self.vars.get(expr.name, 0)  # Default to 0 if variable not found
+        elif isinstance(expr, BinaryExpr):
+            left = self.eval(expr.lhs)
+            right = self.eval(expr.rhs)
+            if expr.operator.type == TokenType.PLUS:
+                return left + right
+            elif expr.operator.type == TokenType.MINUS:
+                return left - right
+            elif expr.operator.type == TokenType.MULTIPLY:
+                return left * right
+            elif expr.operator.type == TokenType.DIVIDE:
+                return left / right
+        elif isinstance(expr, ListExpr):
+            return [self.eval(e) for e in expr.elements]
+        else:
+            raise ValueError(f"Unsupported expression type: {type(expr)}")
+
+    def eval_var(self, stmt: VarDecl) -> Union[int, float, List]:
+        return self.eval(stmt.expr)
+
 
 class ListExpr(Expr):
     def __init__(self, elements):
@@ -305,19 +338,29 @@ class Parser:
 
 
 # Example usage
+# example_code = '''
+# let a = [(1*3,2+3+4,3]
+# let b = 3 + a
+#
+# let myfunc = |a,b| {
+#     a + b
+# }
+# myfunc(1,2)
+# '''
 example_code = '''
-let a = [(1+b)*3,2,3]
-let b = 3
-let myfunc = |a,b| {
-    a + b
-}
-myfunc(1,2)
+let a1 = 12
+let b = 3 + a1
+let a = [1*3,2+3+4,b]
+
 '''
 
 tokens = tokenize(example_code)
 parser = Parser(tokens)
 statements = parser.parse()
 for stmt in statements:
-    print(stmt)
+    if isinstance(stmt, Expr):
+        print("EXECUTE", stmt)
+    else:
+        print("DECLS", stmt)
 program = Program(statements)
 program.execute()
