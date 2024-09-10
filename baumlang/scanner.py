@@ -1,6 +1,6 @@
 import re
 from enum import Enum, auto
-from typing import TypeVar, List, Union
+from typing import TypeVar, List, Union, Callable
 
 
 class TokenType(Enum):
@@ -145,15 +145,12 @@ class Program:
         for stmt in self.statements:
             if isinstance(stmt, Expr):
                 result = self.eval(stmt)
-                print(f"Expression result: {result}")
             elif isinstance(stmt, VarDecl):
                 self.vars[stmt.name] = self.eval_var(stmt)
-                print(f"Variable {stmt.name} = {self.vars[stmt.name]}")
             elif isinstance(stmt, FuncDecl):
                 self.funcs[stmt.name] = stmt
-                print(f"Function {stmt.name} defined")
 
-    def eval(self, expr: Expr) -> Union[int, float, List]:
+    def eval(self, expr: Expr) -> Union[int, float, List, Callable]:
         if isinstance(expr, NumberLiteral):
             return expr.value
         elif isinstance(expr, Variable):
@@ -171,8 +168,31 @@ class Program:
                 return left / right
         elif isinstance(expr, ListExpr):
             return [self.eval(e) for e in expr.elements]
+        elif isinstance(expr, FuncCall):
+            if expr.name.name == "print":
+                print("Printing:", [self.eval(arg) for arg in expr.args])
+                return []
+            func = self.funcs.get(expr.name.name)
+            args = [self.eval(arg) for arg in expr.args]
+            return self.eval_func(func, args)
         else:
             raise ValueError(f"Unsupported expression type: {type(expr)}")
+
+    def eval_func(self, func: FuncDecl, args: List) -> Union[int, float, List]:
+        if len(func.args) != len(args):
+            raise ValueError(f"Function {func.name} expects {len(func.args)} arguments, but got {len(args)}")
+
+        # Create a new scope for the function
+        old_vars = self.vars.copy()
+        for param, arg in zip(func.args, args):
+            self.vars[param] = arg
+
+        result = self.eval(func.body)
+
+        # Restore the old scope
+        self.vars = old_vars
+
+        return result
 
     def eval_var(self, stmt: VarDecl) -> Union[int, float, List]:
         return self.eval(stmt.expr)
@@ -348,19 +368,30 @@ class Parser:
 # myfunc(1,2)
 # '''
 example_code = '''
-let a1 = 12
-let b = 3 + a1
-let a = [1*3,2+3+4,b]
+let a = 1
+let func = |a,b| {
+    a(b)
+}
+let add1 = |a| {
+    a + 1
+}
+print(add1(2))
 
 '''
+try:
+    tokens = tokenize(example_code)
+    parser = Parser(tokens)
+    statements = parser.parse()
+    # for stmt in statements:
+    #     if isinstance(stmt, Expr):
+    #         print("EXECUTE", stmt)
+    #     else:
+    #         print("DECLS", stmt)
+    program = Program(statements)
+    program.execute()
+except Exception as e:
+    pass
 
-tokens = tokenize(example_code)
-parser = Parser(tokens)
-statements = parser.parse()
-for stmt in statements:
-    if isinstance(stmt, Expr):
-        print("EXECUTE", stmt)
-    else:
-        print("DECLS", stmt)
-program = Program(statements)
-program.execute()
+print("======================")
+print(example_code)
+print("======================")
