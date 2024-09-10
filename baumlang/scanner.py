@@ -209,7 +209,14 @@ class Program:
             if expr.name.name == "len":
                 return len(self.eval(expr.args[0]))
             if expr.name.name == "concat":
-                return [item for arg in expr.args for item in self.eval(arg)]
+                result = []
+                for arg in expr.args:
+                    evaluated_arg = self.eval(arg)
+                    if isinstance(evaluated_arg, list):
+                        result.extend(evaluated_arg)
+                    else:
+                        result.append(evaluated_arg)
+                return result
             if expr.name.name == "head":
                 return self.eval(expr.args[0])[0]
             if expr.name.name == "tail":
@@ -218,13 +225,13 @@ class Program:
             if func is None:
                 func = self.vars.get(expr.name.name)
             args = [self.eval(arg) for arg in expr.args]
-
             return self.eval_func(func, args)
         else:
-            raise ValueError(f"Unsupported expression type: {type(expr)}")
+            raise ValueError(f"Unsupported expression type: {type(expr)} {expr}")
 
     def eval_func(self, func: FuncDecl, args: List) -> Union[int, float, List]:
         if len(func.args) != len(args):
+
             raise ValueError(f"Function {func.name} expects {len(func.args)} arguments, but got {len(args)}")
 
         # Create a new scope for the function
@@ -338,7 +345,7 @@ class Parser:
         elif token.type == TokenType.LBRACKET:
             return self.parse_list_expr()
         else:
-            raise SyntaxError(f"Unexpected token: {token.value} in {example_code}")
+            raise SyntaxError(f"Unexpected token: {self.current_token(), self.peek(1), self.peek(2)} in {example_code}")
 
     def parse_binary_expr(self, left, precedence):
         op = self.consume()
@@ -396,12 +403,18 @@ class Parser:
     # [1, 1+2, 3, variable]
     def parse_list_expr(self) -> ListExpr:
         exprs = []
+        if self.current_token().type == TokenType.LBRACKET and self.peek(1).type == TokenType.RBRACKET:
+            self.consume()
+            self.consume()
+            return ListExpr(exprs)
+
         while self.current_token().type != TokenType.RBRACKET:
             self.consume()
             expr = self.parse_expr()
             exprs.append(expr)
             #here should be , now
         self.consume()
+
         return ListExpr(exprs)
 
     def parse_parameters(self) -> [str]:
@@ -473,19 +486,18 @@ class Parser:
 # '''
 
 example_code = '''
-let myfunc = |a,b| {
-    a(b)
-}
 let add1 = |a| {
     a + 1
 }
-let l1 = [101,3]
-let l2 = [2,4,4]
-let l3 = concat(l1,l2)
-print(l3)
-print(len(l3))
-print(myfunc(add1,1))
-print(tail(l2))
+let map = |f, lst| {
+    if len(lst) == 0 {
+        []
+    } else {
+        concat(f(head(lst)), map(f, tail(lst)))
+    }
+}
+
+print(map(add1, [1,2]))
 '''
 try:
     print("======================")
