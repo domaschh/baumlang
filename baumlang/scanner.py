@@ -1,4 +1,5 @@
 import re
+from _ast import Expression
 from enum import Enum, auto
 from typing import TypeVar, List, Union, Callable
 
@@ -168,6 +169,8 @@ class Program:
             return expr.value
         elif isinstance(expr, Variable):
             return self.vars.get(expr.name, 0)  # Default to 0 if variable not found
+        elif isinstance(expr, NotExpr):
+            return not self.eval(expr.expr)
         elif isinstance(expr, IfExpr):
             print("Condd",self.eval(expr.condition))
             cond_result  = self.eval(expr.condition)
@@ -231,6 +234,10 @@ class ListExpr(Expr):
     def __init__(self, elements):
         self.elements = elements
 
+class NotExpr(Expression):
+    def __init__(self, expr):
+        self.expr = expr
+
 class BinaryExpr(Expr):
     def __init__(self, lhs, rhs, operator):
         self.rhs = rhs
@@ -287,7 +294,9 @@ class Parser:
             return self.parse_if_expr()
         if self.current_token().type == TokenType.LBRACKET:
             return self.parse_list_expr()
-
+        if self.current_token().type == TokenType.NOT:
+            self.consume()
+            return NotExpr(self.parse_expr())
         left = self.parse_primary()
         while self.tokens_left():
             if self.current_token().type == TokenType.LPAREN:
