@@ -497,7 +497,25 @@ let map = |f, lst| {
     }
 }
 
-print(map(add1, [1,2]))
+let reduce = |f, lst, initial| {
+    if len(lst) == 0 {
+        initial
+    } else {
+        reduce(f, tail(lst), f(initial, head(lst)))
+    }
+}
+
+let add = |a, b| {
+    a + b
+}
+
+let sum = |lst| {
+    reduce(add, lst, 0)
+}
+
+print(map(add1, [1,2])) # should print [2,3]
+print(sum([1, 2, 3, 4, 5]))  # Should print 15
+
 '''
 try:
     print("======================")
