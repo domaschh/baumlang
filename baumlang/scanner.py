@@ -172,7 +172,6 @@ class Program:
         elif isinstance(expr, NotExpr):
             return not self.eval(expr.expr)
         elif isinstance(expr, IfExpr):
-            print("Condd",self.eval(expr.condition))
             cond_result  = self.eval(expr.condition)
             if cond_result:
                 return self.eval(expr.thn)
@@ -444,9 +443,19 @@ let comparison = |a| {
        4
     }
 }
-print(comparison(1))
-print(10 < 10)
-print(!(11 == 10))
+let fib = |n| {
+    if n < 2 {
+        if n == 1 {
+            1
+        } else {
+            0
+        }
+    } else {
+        fib(n-1) + fib(n-2)
+    }
+}
+
+print(fib(6))
 '''
 try:
     tokens = tokenize(example_code)
