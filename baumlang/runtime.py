@@ -441,97 +441,54 @@ class Parser:
 
         expr = IfExpr(ifexpr, thn, elseexpr)
         return expr
-
-
-# Example usage
-# example_code = '''
-# let a = [(1*3,2+3+4,3]
-# let b = 3 + a
 #
-# let myfunc = |a,b| {
-#     a + b
-# }
-# myfunc(1,2)
-# '''
 # example_code = '''
-# let a = 1
-# let func = |a,b| {
-#     a(b)
-# }
 # let add1 = |a| {
 #     a + 1
 # }
-# print(add1(2))
-#
-# let comparison = |a| {
-#     if a == 10 {
-#         2
+# let map = |f, lst| {
+#     if len(lst) == 0 {
+#         []
 #     } else {
-#        4
-#     }
-# }
-# let fib = |n| {
-#     if n < 2 {
-#         if n == 1 {
-#             1
-#         } else {
-#             0
-#         }
-#     } else {
-#         fib(n-1) + fib(n-2)
+#         concat(f(head(lst)), map(f, tail(lst)))
 #     }
 # }
 #
-# print(fib(6))
+# let reduce = |f, lst, initial| {
+#     if len(lst) == 0 {
+#         initial
+#     } else {
+#         reduce(f, tail(lst), f(initial, head(lst)))
+#     }
+# }
+#
+# let add = |a, b| {
+#     a + b
+# }
+#
+# let sum = |lst| {
+#     reduce(add, lst, 0)
+# }
+#
+# print(map(add1, [1,2])) # should print [2,3]
+# print(sum([1, 2, 3, 4, 5]))  # Should print 15
+#
 # '''
-
-example_code = '''
-let add1 = |a| {
-    a + 1
-}
-let map = |f, lst| {
-    if len(lst) == 0 {
-        []
-    } else {
-        concat(f(head(lst)), map(f, tail(lst)))
-    }
-}
-
-let reduce = |f, lst, initial| {
-    if len(lst) == 0 {
-        initial
-    } else {
-        reduce(f, tail(lst), f(initial, head(lst)))
-    }
-}
-
-let add = |a, b| {
-    a + b
-}
-
-let sum = |lst| {
-    reduce(add, lst, 0)
-}
-
-print(map(add1, [1,2])) # should print [2,3]
-print(sum([1, 2, 3, 4, 5]))  # Should print 15
-
-'''
-try:
-    print("======================")
-    print(example_code)
-    print("======================")
-
-    tokens = tokenize(example_code)
-    parser = Parser(tokens)
-    statements = parser.parse()
-    # for stmt in statements:
-    #     if isinstance(stmt, Expr):
-    #         print("EXECUTE", stmt)
-    #     else:
-    #         print("DECLS", stmt)
-    program = Program(statements)
-    program.execute()
-except Exception as e:
-    raise
-
+# try:
+#     print("======================")
+#     print(example_code)
+#     print("======================")
+#
+#     tokens = tokenize(example_code)
+#     parser = Parser(tokens)
+#     statements = parser.parse()
+#     # for stmt in statements:
+#     #     if isinstance(stmt, Expr):
+#     #         print("EXECUTE", stmt)
+#     #     else:
+#     #         print("DECLS", stmt)
+#     program = Program(statements)
+#     program.execute()
+# except Exception as e:
+#     raise
+#

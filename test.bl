@@ -1,23 +1,29 @@
-let a = [1,2,3]
-
-let simplefunc = |a,b| {
-    if a > b {
-      1
-    } else {
-      2
-    }
-}
-
-let map = |f,l|{
-    if len(l) == 0 {
-        []
-    } else {
-        concat(f(head(l)), map(f, tail(l)))
-    }
-}
-
-let plus1 = |a| {
+let add1 = |a| {
     a + 1
 }
+let map = |f, lst| {
+    if len(lst) == 0 {
+        []
+    } else {
+        concat(f(head(lst)), map(f, tail(lst)))
+    }
+}
 
-print(map(plus1, a))
+let reduce = |f, lst, initial| {
+    if len(lst) == 0 {
+        initial
+    } else {
+        reduce(f, tail(lst), f(initial, head(lst)))
+    }
+}
+
+let add = |a, b| {
+    a + b
+}
+
+let sum = |lst| {
+    reduce(add, lst, 0)
+}
+
+print(map(add1, [1,2])) # should print [2,3]
+print(sum([1, 2, 3, 4, 5]))  # Should print 15
