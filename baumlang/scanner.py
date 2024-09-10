@@ -117,6 +117,7 @@ class FuncDecl(Decl):
         self.args = args
         self.body = body
 
+
 class VarDecl(Decl):
     def __init__(self, name, expr):
         super().__init__(name)
@@ -124,6 +125,11 @@ class VarDecl(Decl):
 
 class Expr(Statement):
     pass
+
+class FuncCall(Expr):
+    def __init__(self, name, args):
+        self.name = name
+        self.args = args
 
 class Program:
     def __init__(self, stmts):
@@ -184,13 +190,29 @@ class Parser:
             statements.append(self.parse_statement())
         return statements
 
+    def parse_function_call(self, func)-> FuncCall:
+        args = []
+        self.consume()  # Consume '('
+        while self.current_token().type != TokenType.RPAREN:
+            args.append(self.parse_expr())
+            if self.current_token().type == TokenType.COMMA:
+                self.consume()
+        self.consume()  # Consume ')'
+        return FuncCall(func, args)
+
     def parse_expr(self, precedence=0) -> Expr:
         if self.current_token().type == TokenType.LBRACKET:
             return self.parse_list_expr()
 
         left = self.parse_primary()
-        while self.tokens_left() and self.current_token().is_operator() and self.get_precedence(self.current_token()) > precedence:
-            left = self.parse_binary_expr(left, self.get_precedence(self.current_token()))
+        while self.tokens_left():
+            if self.current_token().type == TokenType.LPAREN:
+                # This is a function call
+                left = self.parse_function_call(left)
+            elif self.current_token().is_operator() and self.get_precedence(self.current_token()) > precedence:
+                left = self.parse_binary_expr(left, self.get_precedence(self.current_token()))
+            else:
+                break
 
         return left
 
@@ -287,8 +309,9 @@ example_code = '''
 let a = [(1+b)*3,2,3]
 let b = 3
 let myfunc = |a,b| {
-    a + 1
+    a + b
 }
+myfunc(1,2)
 '''
 
 tokens = tokenize(example_code)
