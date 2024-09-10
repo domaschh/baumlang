@@ -158,17 +158,20 @@ class Program:
     def execute(self):
         for stmt in self.statements:
             if isinstance(stmt, Expr):
-                result = self.eval(stmt)
+                self.eval(stmt)
             elif isinstance(stmt, VarDecl):
                 self.vars[stmt.name] = self.eval_var(stmt)
             elif isinstance(stmt, FuncDecl):
                 self.funcs[stmt.name] = stmt
 
-    def eval(self, expr: Expr) -> Union[int, float, List, Callable]:
+    def eval(self, expr: Expr) -> Union[int, float, List, Expr]:
         if isinstance(expr, NumberLiteral):
             return expr.value
         elif isinstance(expr, Variable):
-            return self.vars.get(expr.name, 0)  # Default to 0 if variable not found
+            variable = self.vars.get(expr.name)
+            if variable is None:
+                variable = self.funcs.get(expr.name)
+            return variable  # Default to 0 if variable not found
         elif isinstance(expr, NotExpr):
             return not self.eval(expr.expr)
         elif isinstance(expr, IfExpr):
@@ -203,8 +206,19 @@ class Program:
             if expr.name.name == "print":
                 print("Printing:", [self.eval(arg) for arg in expr.args])
                 return []
+            if expr.name.name == "len":
+                return len(self.eval(expr.args[0]))
+            if expr.name.name == "concat":
+                return [item for arg in expr.args for item in self.eval(arg)]
+            if expr.name.name == "head":
+                return self.eval(expr.args[0])[0]
+            if expr.name.name == "tail":
+                return self.eval(expr.args[0])[1:]
             func = self.funcs.get(expr.name.name)
+            if func is None:
+                func = self.vars.get(expr.name.name)
             args = [self.eval(arg) for arg in expr.args]
+
             return self.eval_func(func, args)
         else:
             raise ValueError(f"Unsupported expression type: {type(expr)}")
@@ -426,51 +440,68 @@ class Parser:
 # }
 # myfunc(1,2)
 # '''
+# example_code = '''
+# let a = 1
+# let func = |a,b| {
+#     a(b)
+# }
+# let add1 = |a| {
+#     a + 1
+# }
+# print(add1(2))
+#
+# let comparison = |a| {
+#     if a == 10 {
+#         2
+#     } else {
+#        4
+#     }
+# }
+# let fib = |n| {
+#     if n < 2 {
+#         if n == 1 {
+#             1
+#         } else {
+#             0
+#         }
+#     } else {
+#         fib(n-1) + fib(n-2)
+#     }
+# }
+#
+# print(fib(6))
+# '''
+
 example_code = '''
-let a = 1
-let func = |a,b| {
+let myfunc = |a,b| {
     a(b)
 }
 let add1 = |a| {
     a + 1
 }
-print(add1(2))
-
-let comparison = |a| {
-    if a == 10 {
-        2
-    } else {
-       4
-    }
-}
-let fib = |n| {
-    if n < 2 {
-        if n == 1 {
-            1
-        } else {
-            0
-        }
-    } else {
-        fib(n-1) + fib(n-2)
-    }
-}
-
-print(fib(6))
+let l1 = [101,3]
+let l2 = [2,4,4]
+let l3 = concat(l1,l2)
+print(l3)
+print(len(l3))
+print(myfunc(add1,1))
+print(tail(l2))
 '''
 try:
+    print("======================")
+    print(example_code)
+    print("======================")
+
     tokens = tokenize(example_code)
     parser = Parser(tokens)
     statements = parser.parse()
-    for stmt in statements:
-        if isinstance(stmt, Expr):
-            print("EXECUTE", stmt)
-        else:
-            print("DECLS", stmt)
+    # for stmt in statements:
+    #     if isinstance(stmt, Expr):
+    #         print("EXECUTE", stmt)
+    #     else:
+    #         print("DECLS", stmt)
     program = Program(statements)
     program.execute()
 except Exception as e:
     raise
 
-print("======================")
-print(example_code)
-print("======================")
