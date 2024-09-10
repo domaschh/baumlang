@@ -39,7 +39,14 @@ class Token:
         return f"({self.type}, {self.value})"
 
     def is_operator(self):
-        return self.type == TokenType.PLUS or self.type == TokenType.MINUS or self.type == TokenType.MULTIPLY or self.type == TokenType.DIVIDE
+        return (self.type == TokenType.PLUS or
+                self.type == TokenType.MINUS or
+                self.type == TokenType.MULTIPLY or
+                self.type == TokenType.DIVIDE or
+                self.type == TokenType.EQUALS or
+                self.type == TokenType.GREATER or
+                self.type == TokenType.NOT or
+                self.type == TokenType.LESS)
 
 def tokenize(code):
     tokens = []
@@ -53,8 +60,8 @@ def tokenize(code):
         ('NUMBER', r'\d+(\.\d*)?'),
         ('STRING', r'"[^"]*"'),
         ('IDENTIFIER', r'[a-zA-Z_]\w*'),
-        ('ASSIGN', r'='),
         ('EQUALS', r'=='),
+        ('ASSIGN', r'='),
         ('NOT', r'!'),
         ('PLUS', r'\+'),
         ('MINUS', r'-'),
@@ -133,6 +140,12 @@ class FuncCall(Expr):
         self.name = name
         self.args = args
 
+class IfExpr(Expr):
+    def __init__(self, condition, thn, els):
+        self.condition = condition
+        self.thn = thn
+        self.els = els
+
 T = TypeVar('T')
 
 class Program:
@@ -155,6 +168,16 @@ class Program:
             return expr.value
         elif isinstance(expr, Variable):
             return self.vars.get(expr.name, 0)  # Default to 0 if variable not found
+        elif isinstance(expr, IfExpr):
+            print("Condd",self.eval(expr.condition))
+            cond_result  = self.eval(expr.condition)
+            if cond_result:
+                return self.eval(expr.thn)
+            else:
+                if expr.els is not None:
+                    return self.eval(expr.els)
+                else:
+                    return []
         elif isinstance(expr, BinaryExpr):
             left = self.eval(expr.lhs)
             right = self.eval(expr.rhs)
@@ -166,6 +189,12 @@ class Program:
                 return left * right
             elif expr.operator.type == TokenType.DIVIDE:
                 return left / right
+            elif expr.operator.type == TokenType.EQUALS:
+                return left == right
+            elif expr.operator.type == TokenType.LESS:
+                return left < right
+            elif expr.operator.type == TokenType.GREATER:
+                return left > right
         elif isinstance(expr, ListExpr):
             return [self.eval(e) for e in expr.elements]
         elif isinstance(expr, FuncCall):
@@ -254,6 +283,8 @@ class Parser:
         return FuncCall(func, args)
 
     def parse_expr(self, precedence=0) -> Expr:
+        if self.current_token().type == TokenType.IF:
+            return self.parse_if_expr()
         if self.current_token().type == TokenType.LBRACKET:
             return self.parse_list_expr()
 
@@ -262,7 +293,7 @@ class Parser:
             if self.current_token().type == TokenType.LPAREN:
                 # This is a function call
                 left = self.parse_function_call(left)
-            elif self.current_token().is_operator() and self.get_precedence(self.current_token()) > precedence:
+            elif self.current_token().is_operator() and self.get_precedence(self.current_token()) >= precedence:
                 left = self.parse_binary_expr(left, self.get_precedence(self.current_token()))
             else:
                 break
@@ -298,6 +329,10 @@ class Parser:
             TokenType.MINUS: 1,
             TokenType.MULTIPLY: 2,
             TokenType.DIVIDE: 2,
+            TokenType.EQUALS: 0,
+            TokenType.LESS: 0,
+            TokenType.GREATER: 0,
+
         }
         return precedences.get(token.type, 0)
 
@@ -356,6 +391,22 @@ class Parser:
 
         return params
 
+    def parse_if_expr(self) -> IfExpr:
+        self.consume()
+        ifexpr = self.parse_expr()
+        self.consume()
+        thn = self.parse_expr()
+        self.consume()
+        elseexpr = None
+        if self.current_token().type == TokenType.ELSE:
+            self.consume()
+            self.consume()
+            elseexpr = self.parse_expr()
+            self.consume()
+
+        expr = IfExpr(ifexpr, thn, elseexpr)
+        return expr
+
 
 # Example usage
 # example_code = '''
@@ -377,20 +428,30 @@ let add1 = |a| {
 }
 print(add1(2))
 
+let comparison = |a| {
+    if a == 10 {
+        2
+    } else {
+       4
+    }
+}
+print(comparison(1))
+print(10 < 10)
+print(!(11 == 10))
 '''
 try:
     tokens = tokenize(example_code)
     parser = Parser(tokens)
     statements = parser.parse()
-    # for stmt in statements:
-    #     if isinstance(stmt, Expr):
-    #         print("EXECUTE", stmt)
-    #     else:
-    #         print("DECLS", stmt)
+    for stmt in statements:
+        if isinstance(stmt, Expr):
+            print("EXECUTE", stmt)
+        else:
+            print("DECLS", stmt)
     program = Program(statements)
     program.execute()
 except Exception as e:
-    pass
+    raise
 
 print("======================")
 print(example_code)
