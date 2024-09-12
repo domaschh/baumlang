@@ -30,6 +30,10 @@ class TokenType(Enum):
     SEMICOLON = auto()
     PRINT = auto()
     PIPE = auto()
+    AND = auto()
+    OR = auto()
+    TRUE = auto()
+    FALSE = auto()
 
 class Token:
     def __init__(self, type, value):
@@ -47,20 +51,28 @@ class Token:
                 self.type == TokenType.EQUALS or
                 self.type == TokenType.GREATER or
                 self.type == TokenType.NOT or
-                self.type == TokenType.LESS)
+                self.type == TokenType.LESS or
+                self.type == TokenType.AND or
+                self.type == TokenType.OR)
 
 def tokenize(code):
     tokens = []
     keywords = {
         'let': TokenType.LET,
         'if': TokenType.IF,
-        'else': TokenType.ELSE
+        'else': TokenType.ELSE,
+        'true': TokenType.TRUE,
+        'false': TokenType.FALSE
     }
 
     token_specifications = [
         ('NUMBER', r'\d+(\.\d*)?'),
         ('STRING', r'"[^"]*"'),
+        ('TRUE', r'true'),
+        ('FALSE', r'false'),
         ('IDENTIFIER', r'[a-zA-Z_]\w*'),
+        ('AND', r'&&'),
+        ('OR', r'\|\|'),
         ('EQUALS', r'=='),
         ('ASSIGN', r'='),
         ('NOT', r'!'),
@@ -167,6 +179,8 @@ class Program:
     def eval(self, expr: Expr) -> Union[int, float, List, Expr]:
         if isinstance(expr, NumberLiteral):
             return expr.value
+        if isinstance(expr, BooleanLiteral):
+            return expr.value
         elif isinstance(expr, Variable):
             variable = self.vars.get(expr.name)
             if variable is None:
@@ -190,6 +204,10 @@ class Program:
                 return left + right
             elif expr.operator.type == TokenType.MINUS:
                 return left - right
+            elif expr.operator.type == TokenType.OR:
+                return left or right
+            elif expr.operator.type == TokenType.AND:
+                return left and right
             elif expr.operator.type == TokenType.MULTIPLY:
                 return left * right
             elif expr.operator.type == TokenType.DIVIDE:
@@ -272,6 +290,12 @@ class Variable(Expr):
     def __init__(self, name):
         self.name = name
 
+
+class BooleanLiteral(Expr):
+    def __init__(self, value):
+        self.value = value
+
+
 class Parser:
     def __init__(self, tkns):
         self.tokens = tkns
@@ -334,6 +358,12 @@ class Parser:
         if token.type == TokenType.NUMBER:
             self.consume()
             return NumberLiteral(token.value)
+        elif token.type == TokenType.TRUE:
+            self.consume()
+            return BooleanLiteral(True)
+        elif token.type == TokenType.FALSE:
+            self.consume()
+            return BooleanLiteral(False)
         elif token.type == TokenType.IDENTIFIER:
             self.consume()
             return Variable(token.value)
@@ -345,7 +375,7 @@ class Parser:
         elif token.type == TokenType.LBRACKET:
             return self.parse_list_expr()
         else:
-            raise SyntaxError(f"Unexpected token: {self.current_token(), self.peek(1), self.peek(2)} in {example_code}")
+            raise SyntaxError(f"Unexpected token: {self.current_token(), self.peek(1), self.peek(2)}")
 
     def parse_binary_expr(self, left, precedence):
         op = self.consume()
@@ -358,7 +388,9 @@ class Parser:
             TokenType.MINUS: 1,
             TokenType.MULTIPLY: 2,
             TokenType.DIVIDE: 2,
-            TokenType.EQUALS: 0,
+            TokenType.EQUALS: 3,
+            TokenType.AND: 0,
+            TokenType.OR: 0,
             TokenType.LESS: 0,
             TokenType.GREATER: 0,
 

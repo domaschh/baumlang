@@ -9,6 +9,12 @@ let map = |f, lst| {
     }
 }
 
+let test= |a| {
+    if a ==1 {
+        1
+    }
+}
+
 let reduce = |f, lst, initial| {
     if len(lst) == 0 {
         initial
@@ -27,3 +33,5 @@ let sum = |lst| {
 
 print(map(add1, [1,2])) # should print [2,3]
 print(sum([1, 2, 3, 4, 5]))  # Should print 15
+print(test(1))
+print(true && true && false)

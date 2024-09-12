@@ -1,0 +1,50 @@
+(* Top-level structure *)
+Program = { Statement } ;
+
+(* Statement *)
+Statement = Declaration | Expression ;
+
+(* Declaration *)
+Declaration = VariableDeclaration | FunctionDefinition ;
+
+(* Variable Declaration *)
+VariableDeclaration = "let", Identifier, "=", Expression ;
+
+(* Function Definition *)
+FunctionDefinition = "let", Identifier, "=", "|", [ ParameterList ], "|", "{", Expression, "}" ;
+
+(* Parameter list *)
+ParameterList = Identifier, { ",", Identifier } ;
+
+(* Expression *)
+Expression = Conditional  | Condition | BinaryOperation | FunctionCall | Identifier | Number | List ;
+
+(* Conditional expression *)
+Conditional = "if", Condition, "{", Expression, "}", "else", "{", Expression, "}" ;
+
+(* Condition *)
+Condition = Expression, ComparisonOperator, Expression ;
+
+(* Comparison operator *)
+ComparisonOperator = "==" | "!=" | "<" | ">" | "<=" | ">=" ;
+
+(* Binary operation *)
+BinaryOperation = Expression, Operator, Expression ;
+
+(* Operator *)
+Operator = "+" | "-" | "*" | "/" ;
+
+(* Function call *)
+FunctionCall = Identifier, "(", [ ArgumentList ], ")" ;
+
+(* Argument list *)
+ArgumentList = Expression, { ",", Expression } ;
+
+(* List *)
+List = "[", [ Expression, { ",", Expression } ], "]" ;
+
+(* Basic elements *)
+Identifier = Letter, { Letter | Digit | "_" } ;
+Number = Digit, { Digit } ;
+Letter = "A" | "B" | ... | "Z" | "a" | "b" | ... | "z" ;
+Digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
