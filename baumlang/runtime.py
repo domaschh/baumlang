@@ -44,6 +44,7 @@ class Token:
         return f"({self.type}, {self.value})"
 
     def is_operator(self):
+        """Operators available as tokens"""
         return (self.type == TokenType.PLUS or
                 self.type == TokenType.MINUS or
                 self.type == TokenType.MULTIPLY or
@@ -56,6 +57,7 @@ class Token:
                 self.type == TokenType.OR)
 
 def tokenize(code):
+    """Takes a string of code and tokenizes it into a list of tokens."""
     tokens = []
     keywords = {
         'let': TokenType.LET,
@@ -120,9 +122,8 @@ def tokenize(code):
 
     return tokens
 
-
-
 class Statement:
+    """Abstract base for statements can either be VarDecl, FUncDecl, or normal expression that is evaluated"""
     def __repr__(self):
         return f"{self.__class__.__name__}({', '.join(f'{k}={v!r}' for k, v in self.__dict__.items())})"
 
@@ -130,10 +131,13 @@ class Eval(Statement):
     pass
 
 class Decl(Statement):
+    """Base for var and function decleration"""
     def __init__(self, name):
         self.name = name
 
 class FuncDecl(Decl):
+    """Lambda decleration that has args and body args can be empty Body is an expression that evaluates to something
+    """
     def __init__(self, name, args, body):
         super().__init__(name)
         self.args = args
@@ -141,11 +145,14 @@ class FuncDecl(Decl):
 
 
 class VarDecl(Decl):
+    """Only usable in main scope not inside functions"""
     def __init__(self, name, expr):
         super().__init__(name)
         self.expr = expr
 
+
 class Expr(Statement):
+    """Base Expression class. No actually used anywhere more like abstract"""
     pass
 
 class FuncCall(Expr):
@@ -162,27 +169,40 @@ class IfExpr(Expr):
 T = TypeVar('T')
 
 class Program:
+    """Responsible for execution
+        Needs statemensts by the parser and act's liek an AST interpreter
+    """
     def __init__(self, stmts):
         self.statements = stmts
         self.vars = {}
         self.funcs = {}
 
     def execute(self):
+        """Main execution loop just loops over all statements ina  row and either prepares the state of th
+            runtime or executes something. A Var decl is immediately evaluated and puts the variable inside the
+            runtime store. Values aren't deallocated until the end of the program.
+        """
         for stmt in self.statements:
             if isinstance(stmt, Expr):
+                #Evaluate instantly
                 self.eval(stmt)
             elif isinstance(stmt, VarDecl):
+                #Put into memory
                 self.vars[stmt.name] = self.eval_var(stmt)
             elif isinstance(stmt, FuncDecl):
+                #Make function available in storee
                 self.funcs[stmt.name] = stmt
 
     def eval(self, expr: Expr) -> Union[int, float, List, Expr]:
+        """Main eval function that evals Expressions based on their type"""
         if isinstance(expr, NumberLiteral):
             return expr.value
         if isinstance(expr, BooleanLiteral):
             return expr.value
         elif isinstance(expr, Variable):
             variable = self.vars.get(expr.name)
+            #This is needed if the function is passed as argument and now available as a variable
+            #after function scope the function is not available anymore unless passed again
             if variable is None:
                 variable = self.funcs.get(expr.name)
             return variable  # Default to 0 if variable not found
@@ -221,6 +241,9 @@ class Program:
         elif isinstance(expr, ListExpr):
             return [self.eval(e) for e in expr.elements]
         elif isinstance(expr, FuncCall):
+            #Offers some compiler intrinsics inside like len concat and print as well as head and tail for the
+            #list type all other functionality should be implementable with the language
+            #Empty return type is empty list every function or expression returns something
             if expr.name.name == "print":
                 print("Printing:", [self.eval(arg) for arg in expr.args])
                 return []
@@ -295,7 +318,6 @@ class BooleanLiteral(Expr):
     def __init__(self, value):
         self.value = value
 
-
 class Parser:
     def __init__(self, tkns):
         self.tokens = tkns
@@ -318,6 +340,8 @@ class Parser:
         return self.tokens[self.idx]
 
     def parse(self) -> [Statement]:
+        """Main parse statement loops through all the tokens.
+         Uses recursive descent parsing and Pratt parsing for precdent statments with binary oeprators"""
         statements = []
         while self.tokens_left():
             statements.append(self.parse_statement())
@@ -383,6 +407,7 @@ class Parser:
         return BinaryExpr(left, right, op)
 
     def get_precedence(self, token):
+        """Helper functions for tokens that act as operators"""
         precedences = {
             TokenType.PLUS: 1,
             TokenType.MINUS: 1,
